@@ -58,7 +58,7 @@ export class App {
   private readonly formBuilder = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly apiUrl = 'http://127.0.0.1:8000';
+  private readonly apiUrl = 'http://127.0.0.1:8010';
 
   protected readonly statuses = ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected'];
   protected readonly mode = signal<Mode>('login');
