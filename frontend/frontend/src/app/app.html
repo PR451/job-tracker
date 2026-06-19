@@ -1,0 +1,172 @@
+@if (!token()) {
+  <main class="auth-page">
+    <section class="auth-panel" aria-labelledby="auth-title">
+      <p class="eyebrow">Job Tracker</p>
+      <h1 id="auth-title">Track every opportunity from saved role to offer.</h1>
+
+      <div class="segmented">
+        <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">Login</button>
+        <button type="button" [class.active]="mode() === 'signup'" (click)="setMode('signup')">Signup</button>
+      </div>
+
+      <form [formGroup]="authForm" (ngSubmit)="authenticate()" class="stack-form">
+        @if (mode() === 'signup') {
+          <label for="name">Name</label>
+          <input id="name" formControlName="name" autocomplete="name" />
+        }
+
+        <label for="email">Email</label>
+        <input id="email" type="email" formControlName="email" autocomplete="email" />
+
+        <label for="password">Password</label>
+        <input id="password" type="password" formControlName="password" autocomplete="current-password" />
+
+        <button class="primary" type="submit" [disabled]="busy()">
+          {{ busy() ? 'Working...' : mode() === 'signup' ? 'Create account' : 'Login' }}
+        </button>
+      </form>
+
+      @if (error()) {
+        <p class="alert error">{{ error() }}</p>
+      }
+    </section>
+  </main>
+} @else {
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Job Tracker</p>
+        <h1>Dashboard</h1>
+      </div>
+      <div class="user-box">
+        <span>{{ user()?.name }}</span>
+        <button type="button" class="ghost" (click)="logout()">Logout</button>
+      </div>
+    </header>
+
+    @if (message()) {
+      <p class="alert success">{{ message() }}</p>
+    }
+    @if (error()) {
+      <p class="alert error">{{ error() }}</p>
+    }
+
+    <section class="metrics">
+      <article>
+        <span>Total</span>
+        <strong>{{ dashboard()?.total ?? applications().length }}</strong>
+      </article>
+      @for (item of statusCounts(); track item.status) {
+        <article>
+          <span>{{ item.status }}</span>
+          <strong>{{ item.count }}</strong>
+        </article>
+      }
+    </section>
+
+    <section class="workspace">
+      <aside class="panel">
+        <div class="panel-heading">
+          <h2>{{ editingApplicationId() ? 'Edit application' : 'Add application' }}</h2>
+        </div>
+
+        <form [formGroup]="applicationForm" (ngSubmit)="saveApplication()" class="stack-form compact">
+          <label for="company">Company</label>
+          <input id="company" formControlName="company" />
+
+          <label for="job_title">Job title</label>
+          <input id="job_title" formControlName="job_title" />
+
+          <label for="status">Status</label>
+          <select id="status" formControlName="status">
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select>
+
+          <label for="job_link">Job link</label>
+          <input id="job_link" formControlName="job_link" />
+
+          <label for="applied_date">Applied date</label>
+          <input id="applied_date" type="date" formControlName="applied_date" />
+
+          <button class="primary" type="submit" [disabled]="busy()">
+            {{ editingApplicationId() ? 'Save changes' : 'Add application' }}
+          </button>
+        </form>
+
+        <div class="resume-box">
+          <h2>Resumes</h2>
+          <input type="file" accept=".pdf,.doc,.docx" (change)="uploadResume($event)" />
+          @for (resume of resumes(); track resume.id) {
+            <p>{{ resume.file_name }} <span>{{ resume.uploaded_at | date: 'MMM d' }}</span></p>
+          } @empty {
+            <p>No resumes uploaded.</p>
+          }
+        </div>
+      </aside>
+
+      <section class="panel list-panel">
+        <div class="panel-heading">
+          <h2>Applications</h2>
+        </div>
+
+        <div class="application-list">
+          @for (application of applications(); track application.id) {
+            <button
+              type="button"
+              class="application-row"
+              [class.active]="selectedApplication()?.id === application.id"
+              (click)="selectApplication(application.id)"
+            >
+              <span>
+                <strong>{{ application.company }}</strong>
+                <small>{{ application.job_title }}</small>
+              </span>
+              <em>{{ application.status }}</em>
+            </button>
+          } @empty {
+            <p class="empty">Add your first role to start tracking.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel detail-panel">
+        @if (selectedApplication(); as application) {
+          <div class="detail-header">
+            <div>
+              <h2>{{ application.company }}</h2>
+              <p>{{ application.job_title }} · {{ application.applied_date | date: 'MMM d, y' }}</p>
+            </div>
+            <div class="actions">
+              <button type="button" class="ghost" (click)="editApplication(application)">Edit</button>
+              <button type="button" class="danger" (click)="deleteApplication(application.id)">Delete</button>
+            </div>
+          </div>
+
+          @if (application.job_link) {
+            <a class="job-link" [href]="application.job_link" target="_blank" rel="noreferrer">Open job post</a>
+          }
+
+          <form [formGroup]="noteForm" (ngSubmit)="addNote()" class="note-form">
+            <textarea formControlName="content" placeholder="Add interview prep, recruiter details, follow-up tasks..."></textarea>
+            <button class="primary" type="submit">Add note</button>
+          </form>
+
+          <div class="notes">
+            @for (note of application.notes; track note.id) {
+              <article>
+                <p>{{ note.content }}</p>
+                <button type="button" class="text-button" (click)="deleteNote(note.id)">Delete</button>
+              </article>
+            } @empty {
+              <p class="empty">No notes yet.</p>
+            }
+          </div>
+        } @else {
+          <p class="empty">Select an application to see details.</p>
+        }
+      </section>
+    </section>
+  </main>
+}

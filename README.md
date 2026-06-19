@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Job Tracker
 
-## Getting Started
+A full-stack job application tracker built with FastAPI, SQLite, SQLAlchemy,
+JWT authentication, and Angular.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Signup and login
+- JWT-protected API routes
+- Application tracking with status updates
+- Dashboard counts by status
+- Resume uploads to local storage
+- Notes on each application
+
+## Project Structure
+
+```text
+backend/
+  auth.py             Password hashing, JWT creation, current-user dependency
+  database.py         SQLite database connection
+  main.py             FastAPI routes
+  models.py           SQLAlchemy tables
+  schemas.py          Pydantic request and response schemas
+  uploads/            Uploaded resume files
+
+frontend/frontend/
+  src/app/app.ts      Angular app logic
+  src/app/app.html    App template
+  src/app/app.css     App styling
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Backend
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Install and run:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd backend
+python -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+./.venv/bin/uvicorn main:app --reload
+```
 
-## Learn More
+Open the API docs:
 
-To learn more about Next.js, take a look at the following resources:
+```text
+http://127.0.0.1:8000/docs
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+By default, the backend uses:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+backend/job_tracker.db
+```
 
-## Deploy on Vercel
+To override it, set `JOB_TRACKER_DB_URL` in `backend/.env`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Frontend
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run the Angular app:
+
+```bash
+cd frontend/frontend
+yarn start --host 127.0.0.1 --port 4201
+```
+
+Open:
+
+```text
+http://127.0.0.1:4201/
+```
+
+## API Overview
+
+- `POST /auth/signup`
+- `POST /auth/login`
+- `GET /me`
+- `GET /dashboard`
+- `POST /applications`
+- `GET /applications`
+- `GET /applications/{id}`
+- `PUT /applications/{id}`
+- `DELETE /applications/{id}`
+- `POST /applications/{id}/notes`
+- `DELETE /notes/{id}`
+- `POST /resumes`
+- `GET /resumes`
+
+## Verification
+
+Useful checks:
+
+```bash
+python -m py_compile backend/main.py backend/database.py backend/models.py backend/schemas.py backend/auth.py
+cd frontend/frontend
+./node_modules/.bin/tsc -p tsconfig.app.json --noEmit
+```
