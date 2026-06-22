@@ -1,34 +1,44 @@
 @if (!token()) {
   <main class="auth-page">
-    <section class="auth-panel" aria-labelledby="auth-title">
-      <p class="eyebrow">Job Tracker</p>
-      <h1 id="auth-title">Track every opportunity from saved role to offer.</h1>
-
-      <div class="segmented">
-        <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">Login</button>
-        <button type="button" [class.active]="mode() === 'signup'" (click)="setMode('signup')">Signup</button>
+    <section class="auth-hero" aria-labelledby="auth-title">
+      <div class="auth-brand">
+        <p class="eyebrow">Career command center</p>
+        <h1 id="auth-title">Job Tracker</h1>
+        <p>Track every opportunity from saved role to offer.</p>
       </div>
 
-      <form [formGroup]="authForm" (ngSubmit)="authenticate()" class="stack-form">
-        @if (mode() === 'signup') {
-          <label for="name">Name</label>
-          <input id="name" formControlName="name" autocomplete="name" />
+      <section class="auth-panel" aria-label="Authentication form">
+        <div class="auth-panel-heading">
+          <p class="eyebrow">{{ mode() === 'signup' ? 'Create account' : 'Welcome back' }}</p>
+          <h2>{{ mode() === 'signup' ? 'Start tracking your search' : 'Sign in to your tracker' }}</h2>
+        </div>
+
+        <div class="segmented">
+          <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">Login</button>
+          <button type="button" [class.active]="mode() === 'signup'" (click)="setMode('signup')">Signup</button>
+        </div>
+
+        <form [formGroup]="authForm" (ngSubmit)="authenticate()" class="stack-form">
+          @if (mode() === 'signup') {
+            <label for="name">Name</label>
+            <input id="name" formControlName="name" autocomplete="name" />
+          }
+
+          <label for="email">Email</label>
+          <input id="email" type="email" formControlName="email" autocomplete="email" />
+
+          <label for="password">Password</label>
+          <input id="password" type="password" formControlName="password" autocomplete="current-password" />
+
+          <button class="primary" type="submit" [disabled]="busy()">
+            {{ busy() ? 'Working...' : mode() === 'signup' ? 'Create account' : 'Login' }}
+          </button>
+        </form>
+
+        @if (error()) {
+          <p class="alert error">{{ error() }}</p>
         }
-
-        <label for="email">Email</label>
-        <input id="email" type="email" formControlName="email" autocomplete="email" />
-
-        <label for="password">Password</label>
-        <input id="password" type="password" formControlName="password" autocomplete="current-password" />
-
-        <button class="primary" type="submit" [disabled]="busy()">
-          {{ busy() ? 'Working...' : mode() === 'signup' ? 'Create account' : 'Login' }}
-        </button>
-      </form>
-
-      @if (error()) {
-        <p class="alert error">{{ error() }}</p>
-      }
+      </section>
     </section>
   </main>
 } @else {

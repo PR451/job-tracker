@@ -20,10 +20,68 @@ textarea {
 }
 
 .auth-page {
-  align-items: center;
+  align-items: stretch;
+  background:
+    linear-gradient(90deg, rgba(6, 15, 31, 0.84) 0%, rgba(11, 31, 58, 0.58) 43%, rgba(8, 20, 38, 0.36) 100%),
+    linear-gradient(135deg, rgba(34, 197, 94, 0.28), transparent 34%),
+    linear-gradient(315deg, rgba(37, 99, 235, 0.32), transparent 40%),
+    url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=80");
+  background-position: center;
+  background-size: cover;
   display: flex;
   justify-content: center;
-  padding: 24px;
+  overflow: hidden;
+  padding: 40px;
+  position: relative;
+}
+
+.auth-page::before {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  content: "";
+  inset: 0;
+  opacity: 0.42;
+  pointer-events: none;
+  position: absolute;
+}
+
+.auth-hero {
+  align-items: center;
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  max-width: 1180px;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.auth-brand {
+  color: #ffffff;
+  max-width: 640px;
+  text-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+.auth-brand .eyebrow,
+.auth-panel-heading .eyebrow {
+  color: #9df7c9;
+}
+
+.auth-brand h1 {
+  font-size: 4.8rem;
+  font-weight: 900;
+  line-height: 0.96;
+  margin-bottom: 18px;
+}
+
+.auth-brand p:not(.eyebrow) {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.35rem;
+  line-height: 1.5;
+  margin-bottom: 0;
+  max-width: 520px;
 }
 
 .auth-panel,
@@ -35,10 +93,26 @@ textarea {
 }
 
 .auth-panel {
-  max-width: 520px;
-  padding: 32px;
+  backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+  color: #ffffff;
+  max-width: 440px;
+  padding: 30px;
   width: 100%;
 }
+
+.auth-panel-heading {
+  margin-bottom: 22px;
+}
+
+.auth-panel-heading h2 {
+  color: #ffffff;
+  font-size: 1.45rem;
+  line-height: 1.25;
+}
+
 
 .app-shell {
   padding: 24px;
@@ -88,7 +162,7 @@ h2 {
 }
 
 .segmented {
-  background: #e8eef6;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   display: grid;
   gap: 4px;
@@ -108,12 +182,12 @@ h2 {
 
 .segmented button {
   border-radius: 6px;
-  color: #435166;
+  color: rgba(255, 255, 255, 0.8);
   min-height: 40px;
 }
 
 .segmented button.active {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.92);
   color: #172033;
   font-weight: 800;
 }
@@ -127,10 +201,19 @@ h2 {
   gap: 8px;
 }
 
+.auth-panel label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 label {
   color: #2c3a4d;
   font-size: 0.86rem;
   font-weight: 800;
+}
+
+.auth-panel input {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(255, 255, 255, 0.52);
 }
 
 input,
@@ -211,6 +294,7 @@ textarea:focus {
 
 .auth-panel .alert {
   margin-top: 16px;
+  max-width: none;
 }
 
 .success {
@@ -397,6 +481,19 @@ textarea:focus {
     padding: 16px;
   }
 
+  .auth-hero {
+    gap: 22px;
+    grid-template-columns: 1fr;
+  }
+
+  .auth-brand h1 {
+    font-size: 3rem;
+  }
+
+  .auth-brand p:not(.eyebrow) {
+    font-size: 1.05rem;
+  }
+
   .auth-panel,
   .panel {
     padding: 16px;
@@ -410,5 +507,30 @@ textarea:focus {
 
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 900px) {
+  .auth-page {
+    align-items: center;
+    overflow: auto;
+  }
+
+  .auth-hero {
+    grid-template-columns: 1fr;
+    max-width: 560px;
+  }
+
+  .auth-brand {
+    text-align: left;
+  }
+
+  .auth-brand h1 {
+    font-size: 3.6rem;
+  }
+
+  .auth-panel {
+    max-width: none;
   }
 }
