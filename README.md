@@ -6,6 +6,7 @@ JWT authentication, and Angular.
 ## Features
 
 - Signup and login
+- Forgot-password reset codes by email
 - JWT-protected API routes
 - Application tracking with status updates
 - Dashboard counts by status
@@ -17,6 +18,7 @@ JWT authentication, and Angular.
 ```text
 backend/
   auth.py             Password hashing, JWT creation, current-user dependency
+  email_service.py    SMTP password reset email sender
   database.py         SQLite database connection
   main.py             FastAPI routes
   models.py           SQLAlchemy tables
@@ -54,6 +56,21 @@ backend/job_tracker.db
 
 To override it, set `JOB_TRACKER_DB_URL` in `backend/.env`.
 
+Password reset emails use SMTP settings from `backend/.env`:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM=no-reply@example.com
+SMTP_USE_TLS=true
+```
+
+If SMTP is not configured, the reset request still creates a code but returns an
+email delivery warning so local development does not silently pretend an email
+was sent.
+
 ## Frontend
 
 Run the Angular app:
@@ -73,6 +90,8 @@ http://127.0.0.1:4201/
 
 - `POST /auth/signup`
 - `POST /auth/login`
+- `POST /auth/forgot-password`
+- `POST /auth/reset-password`
 - `GET /me`
 - `GET /dashboard`
 - `POST /applications`
@@ -90,7 +109,7 @@ http://127.0.0.1:4201/
 Useful checks:
 
 ```bash
-python -m py_compile backend/main.py backend/database.py backend/models.py backend/schemas.py backend/auth.py
+python -m py_compile backend/main.py backend/database.py backend/models.py backend/schemas.py backend/auth.py backend/email_service.py
 cd frontend/frontend
 ./node_modules/.bin/tsc -p tsconfig.app.json --noEmit
 ```

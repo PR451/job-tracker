@@ -20,6 +20,17 @@ Optional database override in `backend/.env`:
 JOB_TRACKER_DB_URL=sqlite:///./job_tracker.db
 ```
 
+Password reset emails require SMTP settings in `backend/.env`:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM=no-reply@example.com
+SMTP_USE_TLS=true
+```
+
 Set a production JWT secret before deploying:
 
 ```env

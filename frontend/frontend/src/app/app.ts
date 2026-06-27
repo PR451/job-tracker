@@ -4,7 +4,7 @@ import { Component, PLATFORM_ID, computed, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
 
-type Mode = 'login' | 'signup';
+type Mode = 'login' | 'signup' | 'forgot' | 'reset';
 
 interface User {
   id: number;
@@ -46,6 +46,16 @@ interface Dashboard {
   by_status: Record<string, number>;
   recent_applications: JobApplication[];
   resumes: Resume[];
+}
+
+interface PasswordResetRequestResponse {
+  message: string;
+  email_sent: boolean;
+  email_error: string | null;
+}
+
+interface MessageResponse {
+  message: string;
 }
 
 @Component({
@@ -91,6 +101,16 @@ export class App {
     content: ['', Validators.required]
   });
 
+  protected readonly passwordResetRequestForm = this.formBuilder.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]]
+  });
+
+  protected readonly passwordResetConfirmForm = this.formBuilder.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    code: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]],
+    new_password: ['', [Validators.required, Validators.minLength(6)]]
+  });
+
   protected readonly selectedApplication = computed(() => {
     const id = this.selectedApplicationId();
     return this.applications().find((application) => application.id === id) ?? this.applications()[0] ?? null;
@@ -116,6 +136,68 @@ export class App {
     this.mode.set(mode);
     this.error.set('');
     this.message.set('');
+  }
+
+  protected startForgotPassword(): void {
+    this.passwordResetRequestForm.patchValue({ email: this.authForm.controls.email.value });
+    this.setMode('forgot');
+  }
+
+  protected requestPasswordReset(): void {
+    this.error.set('');
+    this.message.set('');
+
+    if (this.passwordResetRequestForm.invalid) {
+      this.passwordResetRequestForm.markAllAsTouched();
+      this.error.set('Enter the email address for your account.');
+      return;
+    }
+
+    this.busy.set(true);
+    this.http.post<PasswordResetRequestResponse>(`${this.apiUrl}/auth/forgot-password`, this.passwordResetRequestForm.getRawValue())
+      .subscribe({
+        next: (response) => {
+          const email = this.passwordResetRequestForm.controls.email.value;
+          this.passwordResetConfirmForm.patchValue({ email });
+          this.mode.set('reset');
+          this.busy.set(false);
+          this.message.set(response.email_error ? `${response.message} ${response.email_error}` : response.message);
+        },
+        error: () => {
+          this.busy.set(false);
+          this.error.set('Could not request a reset code.');
+        }
+      });
+  }
+
+  protected resetPassword(): void {
+    this.error.set('');
+    this.message.set('');
+
+    if (this.passwordResetConfirmForm.invalid) {
+      this.passwordResetConfirmForm.markAllAsTouched();
+      this.error.set('Enter your email, 6-digit code, and a new password.');
+      return;
+    }
+
+    this.busy.set(true);
+    this.http.post<MessageResponse>(`${this.apiUrl}/auth/reset-password`, this.passwordResetConfirmForm.getRawValue())
+      .subscribe({
+        next: (response) => {
+          this.busy.set(false);
+          this.message.set(response.message);
+          this.authForm.patchValue({
+            email: this.passwordResetConfirmForm.controls.email.value,
+            password: ''
+          });
+          this.passwordResetConfirmForm.reset();
+          this.mode.set('login');
+        },
+        error: (err) => {
+          this.busy.set(false);
+          this.error.set(err.error?.detail ?? 'Could not reset your password.');
+        }
+      });
   }
 
   protected authenticate(): void {

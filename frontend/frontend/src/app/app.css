@@ -174,6 +174,7 @@ h2 {
 .segmented button,
 .ghost,
 .danger,
+.link-button,
 .text-button {
   background: transparent;
   border: 0;
@@ -453,10 +454,22 @@ textarea:focus {
   white-space: pre-wrap;
 }
 
+.link-button,
 .text-button {
   color: #b42318;
   font-weight: 800;
   padding: 0;
+}
+
+.auth-panel .link-button {
+  color: #d8fbe8;
+  justify-self: center;
+  min-height: 28px;
+}
+
+.auth-panel .success {
+  margin-top: 16px;
+  max-width: none;
 }
 
 .empty {

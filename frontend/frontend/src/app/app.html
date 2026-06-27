@@ -9,16 +9,23 @@
 
       <section class="auth-panel" aria-label="Authentication form">
         <div class="auth-panel-heading">
-          <p class="eyebrow">{{ mode() === 'signup' ? 'Create account' : 'Welcome back' }}</p>
-          <h2>{{ mode() === 'signup' ? 'Start tracking your search' : 'Sign in to your tracker' }}</h2>
+          <p class="eyebrow">
+            {{ mode() === 'signup' ? 'Create account' : mode() === 'forgot' ? 'Reset password' : mode() === 'reset' ? 'Check your email' : 'Welcome back' }}
+          </p>
+          <h2>
+            {{ mode() === 'signup' ? 'Start tracking your search' : mode() === 'forgot' ? 'Get a reset code' : mode() === 'reset' ? 'Create a new password' : 'Sign in to your tracker' }}
+          </h2>
         </div>
 
-        <div class="segmented">
-          <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">Login</button>
-          <button type="button" [class.active]="mode() === 'signup'" (click)="setMode('signup')">Signup</button>
-        </div>
+        @if (mode() === 'login' || mode() === 'signup') {
+          <div class="segmented">
+            <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">Login</button>
+            <button type="button" [class.active]="mode() === 'signup'" (click)="setMode('signup')">Signup</button>
+          </div>
+        }
 
-        <form [formGroup]="authForm" (ngSubmit)="authenticate()" class="stack-form">
+        @if (mode() === 'login' || mode() === 'signup') {
+          <form [formGroup]="authForm" (ngSubmit)="authenticate()" class="stack-form">
           @if (mode() === 'signup') {
             <label for="name">Name</label>
             <input id="name" formControlName="name" autocomplete="name" />
@@ -33,7 +40,45 @@
           <button class="primary" type="submit" [disabled]="busy()">
             {{ busy() ? 'Working...' : mode() === 'signup' ? 'Create account' : 'Login' }}
           </button>
-        </form>
+            @if (mode() === 'login') {
+              <button type="button" class="link-button" (click)="startForgotPassword()">Forgot password?</button>
+            }
+          </form>
+        }
+
+        @if (mode() === 'forgot') {
+          <form [formGroup]="passwordResetRequestForm" (ngSubmit)="requestPasswordReset()" class="stack-form">
+            <label for="reset-email">Registered email</label>
+            <input id="reset-email" type="email" formControlName="email" autocomplete="email" />
+
+            <button class="primary" type="submit" [disabled]="busy()">
+              {{ busy() ? 'Sending...' : 'Send reset code' }}
+            </button>
+            <button type="button" class="link-button" (click)="setMode('login')">Back to login</button>
+          </form>
+        }
+
+        @if (mode() === 'reset') {
+          <form [formGroup]="passwordResetConfirmForm" (ngSubmit)="resetPassword()" class="stack-form">
+            <label for="confirm-email">Registered email</label>
+            <input id="confirm-email" type="email" formControlName="email" autocomplete="email" />
+
+            <label for="reset-code">Reset code</label>
+            <input id="reset-code" formControlName="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+
+            <label for="new-password">New password</label>
+            <input id="new-password" type="password" formControlName="new_password" autocomplete="new-password" />
+
+            <button class="primary" type="submit" [disabled]="busy()">
+              {{ busy() ? 'Updating...' : 'Update password' }}
+            </button>
+            <button type="button" class="link-button" (click)="setMode('forgot')">Send another code</button>
+          </form>
+        }
+
+        @if (message() && !token()) {
+          <p class="alert success">{{ message() }}</p>
+        }
 
         @if (error()) {
           <p class="alert error">{{ error() }}</p>

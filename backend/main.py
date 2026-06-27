@@ -1,4 +1,6 @@
+from datetime import datetime, timedelta
 from pathlib import Path
+from secrets import randbelow
 from shutil import copyfileobj
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
@@ -8,15 +10,20 @@ from sqlalchemy.orm import Session, selectinload
 
 from auth import create_access_token, get_current_user, get_db, hash_password, verify_password
 from database import BASE_DIR, engine
-from models import Application, Base, Note, Resume, User
+from email_service import EmailDeliveryError, send_password_reset_code
+from models import Application, Base, Note, PasswordReset, Resume, User
 from schemas import (
     ApplicationCreate,
     ApplicationOut,
     ApplicationUpdate,
     AuthResponse,
     DashboardOut,
+    MessageOut,
     NoteCreate,
     NoteOut,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    PasswordResetRequestOut,
     ResumeOut,
     UserCreate,
     UserLogin,
@@ -82,6 +89,57 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return AuthResponse(access_token=create_access_token(str(user.id)), user=user)
+
+
+@app.post("/auth/forgot-password", response_model=PasswordResetRequestOut)
+def forgot_password(payload: PasswordResetRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(func.lower(User.email) == payload.email.lower()).first()
+    generic_message = "If that email is registered, a reset code has been sent."
+    if user is None:
+        return PasswordResetRequestOut(message=generic_message, email_sent=False)
+
+    code = f"{randbelow(1_000_000):06d}"
+    reset = PasswordReset(
+        user_id=user.id,
+        code_hash=hash_password(code),
+        expires_at=datetime.utcnow() + timedelta(minutes=15),
+    )
+    db.add(reset)
+    db.commit()
+
+    try:
+        send_password_reset_code(user.email, code)
+        return PasswordResetRequestOut(message=generic_message, email_sent=True)
+    except EmailDeliveryError as exc:
+        return PasswordResetRequestOut(
+            message=generic_message,
+            email_sent=False,
+            email_error=str(exc),
+        )
+
+
+@app.post("/auth/reset-password", response_model=MessageOut)
+def reset_password(payload: PasswordResetConfirm, db: Session = Depends(get_db)):
+    user = db.query(User).filter(func.lower(User.email) == payload.email.lower()).first()
+    if user is None:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+
+    reset = (
+        db.query(PasswordReset)
+        .filter(PasswordReset.user_id == user.id, PasswordReset.used_at.is_(None))
+        .order_by(PasswordReset.created_at.desc())
+        .first()
+    )
+    if reset is None or reset.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+
+    if not verify_password(payload.code, reset.code_hash):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+
+    user.hashed_password = hash_password(payload.new_password)
+    reset.used_at = datetime.utcnow()
+    db.commit()
+    return MessageOut(message="Password updated. You can log in with your new password.")
 
 
 @app.get("/me", response_model=UserOut)
