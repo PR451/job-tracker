@@ -44,6 +44,8 @@ class Resume(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     file_name = Column(String(255), nullable=False)
     file_path = Column(String(600), nullable=False)
+    extracted_text = Column(Text, default="", nullable=False)
+    keywords = Column(String(500), default="", nullable=False)
     uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="resumes")

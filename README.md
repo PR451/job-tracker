@@ -11,6 +11,8 @@ JWT authentication, and Angular.
 - Application tracking with status updates
 - Dashboard counts by status
 - Resume uploads to local storage
+- Resume text extraction and keyword detection
+- Job recommendations from resume keywords and preferred location
 - Notes on each application
 
 ## Project Structure
@@ -71,6 +73,9 @@ If SMTP is not configured, the reset request still creates a code but returns an
 email delivery warning so local development does not silently pretend an email
 was sent.
 
+Job recommendations use extracted resume keywords and the public Remotive jobs
+API. No API key is required for the MVP.
+
 ## Frontend
 
 Run the Angular app:
@@ -103,6 +108,7 @@ http://127.0.0.1:4201/
 - `DELETE /notes/{id}`
 - `POST /resumes`
 - `GET /resumes`
+- `GET /job-recommendations?location=Remote`
 
 ## Verification
 

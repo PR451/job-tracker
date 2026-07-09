@@ -33,7 +33,26 @@ interface JobApplication {
 interface Resume {
   id: number;
   file_name: string;
+  extracted_text: string;
+  keywords: string;
   uploaded_at: string;
+}
+
+interface JobRecommendation {
+  id: string;
+  company: string;
+  title: string;
+  location: string;
+  url: string;
+  source: string;
+  matched_keywords: string[];
+  description: string;
+}
+
+interface JobRecommendationSearch {
+  keywords: string[];
+  location: string;
+  jobs: JobRecommendation[];
 }
 
 interface AuthResponse {
@@ -76,6 +95,9 @@ export class App {
   protected readonly user = signal<User | null>(null);
   protected readonly applications = signal<JobApplication[]>([]);
   protected readonly resumes = signal<Resume[]>([]);
+  protected readonly resumeKeywords = signal<string[]>([]);
+  protected readonly jobRecommendations = signal<JobRecommendation[]>([]);
+  protected readonly isFindingJobs = signal(false);
   protected readonly dashboard = signal<Dashboard | null>(null);
   protected readonly selectedApplicationId = signal<number | null>(null);
   protected readonly editingApplicationId = signal<number | null>(null);
@@ -99,6 +121,10 @@ export class App {
 
   protected readonly noteForm = this.formBuilder.nonNullable.group({
     content: ['', Validators.required]
+  });
+
+  protected readonly recommendationForm = this.formBuilder.nonNullable.group({
+    location: ['Remote']
   });
 
   protected readonly passwordResetRequestForm = this.formBuilder.nonNullable.group({
@@ -332,6 +358,49 @@ export class App {
     });
   }
 
+  protected findRecommendedJobs(): void {
+    this.error.set('');
+    this.isFindingJobs.set(true);
+    const location = encodeURIComponent(this.recommendationForm.controls.location.value || 'Remote');
+
+    this.http.get<JobRecommendationSearch>(`${this.apiUrl}/job-recommendations?location=${location}`, this.headers())
+      .subscribe({
+        next: (response) => {
+          this.resumeKeywords.set(response.keywords);
+          this.jobRecommendations.set(response.jobs);
+          this.isFindingJobs.set(false);
+          if (!response.keywords.length) {
+            this.message.set('Upload a resume with recognizable skills to improve recommendations.');
+          } else if (!response.jobs.length) {
+            this.message.set('No job recommendations were found for those keywords yet.');
+          } else {
+            this.message.set(`Found ${response.jobs.length} recommended jobs.`);
+          }
+        },
+        error: () => {
+          this.isFindingJobs.set(false);
+          this.error.set('Could not load job recommendations right now.');
+        }
+      });
+  }
+
+  protected saveRecommendedJob(job: JobRecommendation): void {
+    const today = new Date().toISOString().slice(0, 10);
+    this.http.post<JobApplication>(`${this.apiUrl}/applications`, {
+      company: job.company,
+      job_title: job.title,
+      status: 'Saved',
+      job_link: job.url,
+      applied_date: today
+    }, this.headers()).subscribe({
+      next: () => {
+        this.message.set('Recommended job saved to tracker.');
+        this.loadWorkspace();
+      },
+      error: () => this.error.set('Could not save that job to your tracker.')
+    });
+  }
+
   protected uploadResume(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -342,9 +411,10 @@ export class App {
     const body = new FormData();
     body.append('file', file);
     this.http.post<Resume>(`${this.apiUrl}/resumes`, body, this.headers()).subscribe({
-      next: () => {
+      next: (response) => {
         input.value = '';
-        this.message.set('Resume uploaded.');
+        this.message.set(`Resume uploaded. Detected keywords: ${response.keywords || 'none yet'}.`);
+        this.resumeKeywords.set(response.keywords ? response.keywords.split(',').map((keyword) => keyword.trim()).filter(Boolean) : []);
         this.loadWorkspace();
       },
       error: () => this.error.set('Could not upload the resume.')
@@ -366,6 +436,8 @@ export class App {
       next: (dashboard) => {
         this.dashboard.set(dashboard);
         this.resumes.set(dashboard.resumes);
+        const latestResume = dashboard.resumes[0];
+        this.resumeKeywords.set(latestResume?.keywords ? latestResume.keywords.split(',').map((keyword) => keyword.trim()).filter(Boolean) : []);
       }
     });
   }

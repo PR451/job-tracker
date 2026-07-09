@@ -4,7 +4,8 @@
 
 Job Tracker helps a user manage their job search. After signup or login, the
 user can add job applications, update each application status, upload resumes,
-write notes, and review dashboard counts.
+write notes, review dashboard counts, and find job recommendations based on
+resume keywords.
 
 ## Backend Environment
 
@@ -60,4 +61,12 @@ http://127.0.0.1:4201/
 ```
 
 If port `4201` is busy, choose another port and keep the backend on
-`http://127.0.0.1:8000`.
+`http://127.0.0.1:8010` if your frontend API URL is set to that port.
+
+## Job Recommendations
+
+Upload a resume, then enter a preferred location in the Job suggestions panel.
+The backend detects keywords such as React, JavaScript, Python, FastAPI,
+Teaching, Healthcare, and SQL, calls the public Remotive jobs API, and returns
+recommended jobs. Use Save to Tracker to add a recommendation to your
+applications list.

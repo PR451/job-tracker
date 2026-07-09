@@ -339,7 +339,7 @@ textarea:focus {
 .workspace {
   display: grid;
   gap: 16px;
-  grid-template-columns: 320px minmax(280px, 1fr) minmax(360px, 1.4fr);
+  grid-template-columns: 320px minmax(260px, 0.9fr) minmax(320px, 1.1fr) minmax(360px, 1.2fr);
 }
 
 .panel {
@@ -356,20 +356,72 @@ textarea:focus {
   margin-bottom: 16px;
 }
 
-.resume-box {
+.resume-box,
+.recommendation-box {
   border-top: 1px solid #e5eaf2;
   margin-top: 22px;
   padding-top: 18px;
 }
 
-.resume-box p {
+.resume-box p,
+.recommendation-box p {
   color: #435166;
   font-size: 0.9rem;
   margin-bottom: 8px;
 }
 
-.resume-box span {
+.resume-box p span {
   color: #667085;
+}
+
+.keyword-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.keyword-list span {
+  background: #ecfdf3;
+  border: 1px solid #a6f4c5;
+  border-radius: 999px;
+  color: #067647;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.recommended-list {
+  display: grid;
+  gap: 12px;
+}
+
+.recommended-job {
+  background: #f8fafc;
+  border: 1px solid #e0e7f0;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.recommended-job h3 {
+  font-size: 0.98rem;
+  line-height: 1.3;
+  margin: 0 0 5px;
+}
+
+.recommended-job p {
+  color: #667085;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.job-summary {
+  color: #435166 !important;
+  font-size: 0.9rem;
+}
+
+.compact-keywords {
+  margin: 8px 0;
 }
 
 .application-list {

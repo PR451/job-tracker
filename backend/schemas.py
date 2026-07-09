@@ -98,7 +98,26 @@ class ResumeOut(BaseModel):
     user_id: int
     file_name: str
     file_path: str
+    extracted_text: str = ""
+    keywords: str = ""
     uploaded_at: datetime
+
+
+class JobRecommendationOut(BaseModel):
+    id: str
+    company: str
+    title: str
+    location: str
+    url: str
+    source: str
+    matched_keywords: list[str]
+    description: str = ""
+
+
+class JobRecommendationSearchOut(BaseModel):
+    keywords: list[str]
+    location: str
+    jobs: list[JobRecommendationOut]
 
 
 class DashboardOut(BaseModel):

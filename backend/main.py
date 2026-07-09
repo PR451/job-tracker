@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta
+from html import unescape
+from json import load as load_json
 from pathlib import Path
+from re import findall, search, sub
 from secrets import randbelow
 from shutil import copyfileobj
+from urllib.parse import quote_plus
+from urllib.request import Request, urlopen
+from zipfile import ZipFile
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
@@ -18,6 +24,7 @@ from schemas import (
     ApplicationUpdate,
     AuthResponse,
     DashboardOut,
+    JobRecommendationSearchOut,
     MessageOut,
     NoteCreate,
     NoteOut,
@@ -45,6 +52,144 @@ app.add_middleware(
 
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+RESUME_KEYWORDS = [
+    "React",
+    "JavaScript",
+    "Python",
+    "FastAPI",
+    "Teaching",
+    "Healthcare",
+    "SQL",
+]
+
+
+def ensure_sqlite_columns() -> None:
+    if not str(engine.url).startswith("sqlite"):
+        return
+
+    with engine.begin() as connection:
+        resume_columns = {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(resumes)")}
+        if "extracted_text" not in resume_columns:
+            connection.exec_driver_sql("ALTER TABLE resumes ADD COLUMN extracted_text TEXT NOT NULL DEFAULT ''")
+        if "keywords" not in resume_columns:
+            connection.exec_driver_sql("ALTER TABLE resumes ADD COLUMN keywords VARCHAR(500) NOT NULL DEFAULT ''")
+
+
+ensure_sqlite_columns()
+
+
+def clean_text(value: str) -> str:
+    return sub(r"\\s+", " ", value).strip()
+
+
+def extract_docx_text(file_path: Path) -> str:
+    with ZipFile(file_path) as document:
+        xml = document.read("word/document.xml").decode("utf-8", errors="ignore")
+    text = sub(r"<[^>]+>", " ", xml)
+    return clean_text(unescape(text))
+
+
+def extract_resume_text(file_path: Path) -> str:
+    suffix = file_path.suffix.lower()
+    if suffix == ".docx":
+        try:
+            return extract_docx_text(file_path)
+        except Exception:
+            return ""
+
+    data = file_path.read_bytes()
+    if suffix in {".txt", ".md", ".csv"}:
+        return clean_text(data.decode("utf-8", errors="ignore"))
+
+    decoded = data.decode("latin-1", errors="ignore")
+    candidates = findall(r"[A-Za-z0-9+#./,() -]{4,}", decoded)
+    return clean_text(" ".join(candidates))[:20000]
+
+
+def detect_resume_keywords(text: str) -> list[str]:
+    found: list[str] = []
+    for keyword in RESUME_KEYWORDS:
+        pattern = rf"(?<![A-Za-z0-9]){keyword.replace('+', r'\\+')}(?![A-Za-z0-9])"
+        if search(pattern, text, flags=2):
+            found.append(keyword)
+    return found
+
+
+def latest_resume_for_user(user: User, db: Session) -> Resume | None:
+    return (
+        db.query(Resume)
+        .filter(Resume.user_id == user.id)
+        .order_by(Resume.uploaded_at.desc())
+        .first()
+    )
+
+
+def fetch_remotive_jobs(query: str) -> list[dict]:
+    url = f"https://remotive.com/api/remote-jobs?search={quote_plus(query)}"
+    request = Request(url, headers={"User-Agent": "JobTrackerPortfolio/1.0"})
+    with urlopen(request, timeout=12) as response:
+        payload = load_json(response)
+    return payload.get("jobs", [])
+
+
+def build_job_recommendations(keywords: list[str], location: str) -> list[dict]:
+    search_terms = keywords[:4] or ["Python", "JavaScript"]
+    raw_jobs: list[dict] = []
+    seen_ids: set[str] = set()
+
+    for term in search_terms:
+        try:
+            jobs = fetch_remotive_jobs(term)
+        except Exception:
+            continue
+
+        for job in jobs:
+            job_id = str(job.get("id") or job.get("url") or "")
+            if not job_id or job_id in seen_ids:
+                continue
+            seen_ids.add(job_id)
+            raw_jobs.append(job)
+            if len(raw_jobs) >= 30:
+                break
+        if len(raw_jobs) >= 30:
+            break
+
+    location_text = location.strip().lower()
+
+    def score(job: dict) -> int:
+        haystack = " ".join(
+            str(job.get(field, ""))
+            for field in ("title", "company_name", "description", "candidate_required_location")
+        ).lower()
+        value = sum(3 for keyword in keywords if keyword.lower() in haystack)
+        if location_text and location_text in haystack:
+            value += 5
+        if location_text and any(word in haystack for word in ("worldwide", "anywhere", "remote")):
+            value += 1
+        return value
+
+    ranked = sorted(raw_jobs, key=score, reverse=True)
+    recommendations: list[dict] = []
+    for job in ranked[:12]:
+        haystack = " ".join(
+            str(job.get(field, ""))
+            for field in ("title", "company_name", "description", "candidate_required_location")
+        ).lower()
+        matched = [keyword for keyword in keywords if keyword.lower() in haystack]
+        recommendations.append(
+            {
+                "id": str(job.get("id") or job.get("url") or len(recommendations)),
+                "company": job.get("company_name") or "Unknown company",
+                "title": job.get("title") or "Untitled role",
+                "location": job.get("candidate_required_location") or "Remote",
+                "url": job.get("url") or "",
+                "source": "Remotive",
+                "matched_keywords": matched,
+                "description": clean_text(sub(r"<[^>]+>", " ", job.get("description") or ""))[:240],
+            }
+        )
+    return recommendations
 
 
 def get_user_application(application_id: int, user: User, db: Session) -> Application:
@@ -260,7 +405,15 @@ def upload_resume(
     with file_path.open("wb") as output:
         copyfileobj(file.file, output)
 
-    resume = Resume(user_id=user.id, file_name=safe_name, file_path=str(file_path))
+    extracted_text = extract_resume_text(file_path)
+    keywords = detect_resume_keywords(extracted_text)
+    resume = Resume(
+        user_id=user.id,
+        file_name=safe_name,
+        file_path=str(file_path),
+        extracted_text=extracted_text,
+        keywords=", ".join(keywords),
+    )
     db.add(resume)
     db.commit()
     db.refresh(resume)
@@ -278,6 +431,24 @@ def list_resumes(
         .order_by(Resume.uploaded_at.desc())
         .all()
     )
+
+
+@app.get("/job-recommendations", response_model=JobRecommendationSearchOut)
+def job_recommendations(
+    location: str = Query(default="", max_length=120),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    resume = latest_resume_for_user(user, db)
+    if resume is None:
+        return JobRecommendationSearchOut(keywords=[], location=location, jobs=[])
+
+    keywords = [keyword.strip() for keyword in resume.keywords.split(",") if keyword.strip()]
+    if not keywords and resume.extracted_text:
+        keywords = detect_resume_keywords(resume.extracted_text)
+
+    jobs = build_job_recommendations(keywords, location)
+    return JobRecommendationSearchOut(keywords=keywords, location=location, jobs=jobs)
 
 
 @app.get("/dashboard", response_model=DashboardOut)

@@ -152,12 +152,30 @@
 
         <div class="resume-box">
           <h2>Resumes</h2>
-          <input type="file" accept=".pdf,.doc,.docx" (change)="uploadResume($event)" />
+          <input type="file" accept=".pdf,.doc,.docx,.txt" (change)="uploadResume($event)" />
+          @if (resumeKeywords().length) {
+            <div class="keyword-list" aria-label="Detected resume keywords">
+              @for (keyword of resumeKeywords(); track keyword) {
+                <span>{{ keyword }}</span>
+              }
+            </div>
+          }
           @for (resume of resumes(); track resume.id) {
             <p>{{ resume.file_name }} <span>{{ resume.uploaded_at | date: 'MMM d' }}</span></p>
           } @empty {
             <p>No resumes uploaded.</p>
           }
+        </div>
+
+        <div class="recommendation-box">
+          <h2>Job suggestions</h2>
+          <form [formGroup]="recommendationForm" (ngSubmit)="findRecommendedJobs()" class="stack-form compact">
+            <label for="preferred-location">Preferred location</label>
+            <input id="preferred-location" formControlName="location" placeholder="Remote, New York, Boston" />
+            <button class="primary" type="submit" [disabled]="isFindingJobs()">
+              {{ isFindingJobs() ? 'Finding jobs...' : 'Find jobs' }}
+            </button>
+          </form>
         </div>
       </aside>
 
@@ -182,6 +200,39 @@
             </button>
           } @empty {
             <p class="empty">Add your first role to start tracking.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel recommendations-panel">
+        <div class="panel-heading">
+          <h2>Recommended jobs</h2>
+        </div>
+
+        <div class="recommended-list">
+          @for (job of jobRecommendations(); track job.id) {
+            <article class="recommended-job">
+              <div>
+                <h3>{{ job.title }}</h3>
+                <p>{{ job.company }} · {{ job.location }}</p>
+              </div>
+              @if (job.matched_keywords.length) {
+                <div class="keyword-list compact-keywords">
+                  @for (keyword of job.matched_keywords; track keyword) {
+                    <span>{{ keyword }}</span>
+                  }
+                </div>
+              }
+              @if (job.description) {
+                <p class="job-summary">{{ job.description }}</p>
+              }
+              <div class="actions">
+                <a class="job-link" [href]="job.url" target="_blank" rel="noreferrer">View job</a>
+                <button type="button" class="ghost" (click)="saveRecommendedJob(job)">Save to Tracker</button>
+              </div>
+            </article>
+          } @empty {
+            <p class="empty">Upload a resume, choose a location, then find jobs.</p>
           }
         </div>
       </section>
