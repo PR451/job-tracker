@@ -77,6 +77,40 @@ interface MessageResponse {
   message: string;
 }
 
+interface CountryOption {
+  code: string;
+  name: string;
+}
+
+const COUNTRY_CODES = [
+  'AF', 'AL', 'DZ', 'AD', 'AO', 'AG', 'AR', 'AM', 'AU', 'AT', 'AZ',
+  'BS', 'BH', 'BD', 'BB', 'BY', 'BE', 'BZ', 'BJ', 'BT', 'BO', 'BA',
+  'BW', 'BR', 'BN', 'BG', 'BF', 'BI', 'KH', 'CM', 'CA', 'CV', 'CF',
+  'TD', 'CL', 'CN', 'CO', 'KM', 'CG', 'CD', 'CR', 'CI', 'HR', 'CU',
+  'CY', 'CZ', 'DK', 'DJ', 'DM', 'DO', 'EC', 'EG', 'SV', 'GQ', 'ER',
+  'EE', 'SZ', 'ET', 'FJ', 'FI', 'FR', 'GA', 'GM', 'GE', 'DE', 'GH',
+  'GR', 'GD', 'GT', 'GN', 'GW', 'GY', 'HT', 'HN', 'HU', 'IS', 'IN',
+  'ID', 'IR', 'IQ', 'IE', 'IL', 'IT', 'JM', 'JP', 'JO', 'KZ', 'KE',
+  'KI', 'KW', 'KG', 'LA', 'LV', 'LB', 'LS', 'LR', 'LY', 'LI', 'LT',
+  'LU', 'MG', 'MW', 'MY', 'MV', 'ML', 'MT', 'MH', 'MR', 'MU', 'MX',
+  'FM', 'MD', 'MC', 'MN', 'ME', 'MA', 'MZ', 'MM', 'NA', 'NR', 'NP',
+  'NL', 'NZ', 'NI', 'NE', 'NG', 'KP', 'MK', 'NO', 'OM', 'PK', 'PW',
+  'PA', 'PG', 'PY', 'PE', 'PH', 'PL', 'PT', 'QA', 'RO', 'RU', 'RW',
+  'KN', 'LC', 'VC', 'WS', 'SM', 'ST', 'SA', 'SN', 'RS', 'SC', 'SL',
+  'SG', 'SK', 'SI', 'SB', 'SO', 'ZA', 'KR', 'SS', 'ES', 'LK', 'SD',
+  'SR', 'SE', 'CH', 'SY', 'TW', 'TJ', 'TZ', 'TH', 'TL', 'TG', 'TO',
+  'TT', 'TN', 'TR', 'TM', 'TV', 'UG', 'UA', 'AE', 'GB', 'US', 'UY',
+  'UZ', 'VU', 'VA', 'VE', 'VN', 'YE', 'ZM', 'ZW'
+];
+
+const COUNTRY_REGION_MAP: Record<string, string[]> = {
+  AU: ['Australian Capital Territory', 'New South Wales', 'Northern Territory', 'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia'],
+  CA: ['Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'],
+  GB: ['England', 'Northern Ireland', 'Scotland', 'Wales'],
+  IN: ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'],
+  US: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
+};
+
 @Component({
   selector: 'app-root',
   imports: [CommonModule, DatePipe, ReactiveFormsModule],
@@ -99,6 +133,10 @@ export class App {
   protected readonly resumeKeywords = signal<string[]>([]);
   protected readonly jobRecommendations = signal<JobRecommendation[]>([]);
   protected readonly isFindingJobs = signal(false);
+  protected readonly locationPickerOpen = signal(false);
+  protected readonly locationSearch = signal('');
+  protected readonly selectedCountry = signal<CountryOption | null>(null);
+  protected readonly countries = this.buildCountries();
   protected readonly dashboard = signal<Dashboard | null>(null);
   protected readonly selectedApplicationId = signal<number | null>(null);
   protected readonly editingApplicationId = signal<number | null>(null);
@@ -125,7 +163,7 @@ export class App {
   });
 
   protected readonly recommendationForm = this.formBuilder.nonNullable.group({
-    location: ['Remote'],
+    location: [''],
     jobTypes: this.formBuilder.nonNullable.control<string[]>(['Remote'])
   });
 
@@ -147,6 +185,26 @@ export class App {
   protected readonly statusCounts = computed(() => {
     const counts = this.dashboard()?.by_status ?? {};
     return this.statuses.map((status) => ({ status, count: counts[status] ?? 0 }));
+  });
+
+  protected readonly filteredCountries = computed(() => {
+    const searchTerm = this.locationSearch().trim().toLowerCase();
+    if (!searchTerm) {
+      return this.countries;
+    }
+
+    return this.countries.filter((country) => country.name.toLowerCase().includes(searchTerm));
+  });
+
+  protected readonly filteredRegions = computed(() => {
+    const country = this.selectedCountry();
+    const regions = country ? COUNTRY_REGION_MAP[country.code] ?? [] : [];
+    const searchTerm = this.locationSearch().trim().toLowerCase();
+    if (!searchTerm) {
+      return regions;
+    }
+
+    return regions.filter((region) => region.toLowerCase().includes(searchTerm));
   });
 
   constructor() {
@@ -360,6 +418,46 @@ export class App {
     });
   }
 
+  protected openLocationPicker(): void {
+    this.locationPickerOpen.set(true);
+    this.locationSearch.set('');
+    this.selectedCountry.set(null);
+  }
+
+  protected closeLocationPicker(): void {
+    this.locationPickerOpen.set(false);
+    this.locationSearch.set('');
+    this.selectedCountry.set(null);
+  }
+
+  protected updateLocationSearch(event: Event): void {
+    this.locationSearch.set((event.target as HTMLInputElement).value);
+  }
+
+  protected selectCountry(country: CountryOption): void {
+    const regions = COUNTRY_REGION_MAP[country.code] ?? [];
+    if (regions.length) {
+      this.selectedCountry.set(country);
+      this.locationSearch.set('');
+      return;
+    }
+
+    this.recommendationForm.controls.location.setValue(country.name);
+    this.closeLocationPicker();
+  }
+
+  protected selectRegion(region: string): void {
+    const country = this.selectedCountry();
+    const location = country ? `${region}, ${country.name}` : region;
+    this.recommendationForm.controls.location.setValue(location);
+    this.closeLocationPicker();
+  }
+
+  protected backToCountries(): void {
+    this.selectedCountry.set(null);
+    this.locationSearch.set('');
+  }
+
   protected toggleJobType(jobType: string): void {
     const selected = this.recommendationForm.controls.jobTypes.value;
     const next = selected.includes(jobType)
@@ -375,7 +473,7 @@ export class App {
   protected findRecommendedJobs(): void {
     this.error.set('');
     this.isFindingJobs.set(true);
-    const location = encodeURIComponent(this.recommendationForm.controls.location.value || 'Remote');
+    const location = encodeURIComponent(this.recommendationForm.controls.location.value || '');
     const jobTypeParams = this.recommendationForm.controls.jobTypes.value
       .map((jobType) => `job_type=${encodeURIComponent(jobType)}`)
       .join('&');
@@ -437,6 +535,16 @@ export class App {
       },
       error: () => this.error.set('Could not upload the resume.')
     });
+  }
+
+  private buildCountries(): CountryOption[] {
+    const displayNames = typeof Intl !== 'undefined' && 'DisplayNames' in Intl
+      ? new Intl.DisplayNames(['en'], { type: 'region' })
+      : null;
+
+    return COUNTRY_CODES
+      .map((code) => ({ code, name: displayNames?.of(code) ?? code }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   private loadWorkspace(): void {

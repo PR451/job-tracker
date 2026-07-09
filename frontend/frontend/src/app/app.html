@@ -172,7 +172,57 @@
             <section class="recommendation-section location-section" aria-labelledby="job-location-title">
               <h2 id="job-location-title">Job location</h2>
               <label for="preferred-location">Preferred location</label>
-              <input id="preferred-location" formControlName="location" placeholder="Remote, New York, Boston" />
+              <div class="location-picker">
+                <button
+                  id="preferred-location"
+                  type="button"
+                  class="location-trigger"
+                  (click)="openLocationPicker()"
+                  [attr.aria-expanded]="locationPickerOpen()"
+                >
+                  {{ recommendationForm.controls.location.value || 'Select location' }}
+                </button>
+
+                @if (locationPickerOpen()) {
+                  <div class="location-menu">
+                    <div class="location-menu-header">
+                      @if (selectedCountry()) {
+                        <button type="button" class="back-button" (click)="backToCountries()">Back</button>
+                      }
+                      <strong>{{ selectedCountry() ? 'Select state or region' : 'Select country' }}</strong>
+                      <button type="button" class="close-button" (click)="closeLocationPicker()">Close</button>
+                    </div>
+
+                    <input
+                      class="location-search"
+                      type="search"
+                      [value]="locationSearch()"
+                      (input)="updateLocationSearch($event)"
+                      [placeholder]="selectedCountry() ? 'Search states or regions' : 'Search countries'"
+                    />
+
+                    <div class="location-options" role="listbox">
+                      @if (selectedCountry()) {
+                        @for (region of filteredRegions(); track region) {
+                          <button type="button" class="location-option" (click)="selectRegion(region)">
+                            {{ region }}
+                          </button>
+                        } @empty {
+                          <p class="empty option-empty">No matching states or regions.</p>
+                        }
+                      } @else {
+                        @for (country of filteredCountries(); track country.code) {
+                          <button type="button" class="location-option" (click)="selectCountry(country)">
+                            {{ country.name }}
+                          </button>
+                        } @empty {
+                          <p class="empty option-empty">No matching countries.</p>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
             </section>
 
             <section class="recommendation-section suggested-job-section" aria-labelledby="suggested-job-title">
