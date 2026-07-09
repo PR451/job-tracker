@@ -73,8 +73,9 @@ If SMTP is not configured, the reset request still creates a code but returns an
 email delivery warning so local development does not silently pretend an email
 was sent.
 
-Job recommendations use extracted resume keywords and the public Remotive jobs
-API. No API key is required for the MVP.
+Job recommendations use extracted resume keywords, preferred location, selected
+job types such as Remote, Part-time, Full time, and Contract, and the public
+Remotive jobs API. No API key is required for the MVP.
 
 ## Frontend
 

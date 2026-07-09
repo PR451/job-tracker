@@ -90,6 +90,7 @@ export class App {
   private readonly apiUrl = 'http://127.0.0.1:8010';
 
   protected readonly statuses = ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected'];
+  protected readonly jobTypeOptions = ['Remote', 'Part-time', 'Full time', 'Contract'];
   protected readonly mode = signal<Mode>('login');
   protected readonly token = signal<string | null>(null);
   protected readonly user = signal<User | null>(null);
@@ -124,7 +125,8 @@ export class App {
   });
 
   protected readonly recommendationForm = this.formBuilder.nonNullable.group({
-    location: ['Remote']
+    location: ['Remote'],
+    jobTypes: this.formBuilder.nonNullable.control<string[]>(['Remote'])
   });
 
   protected readonly passwordResetRequestForm = this.formBuilder.nonNullable.group({
@@ -358,12 +360,28 @@ export class App {
     });
   }
 
+  protected toggleJobType(jobType: string): void {
+    const selected = this.recommendationForm.controls.jobTypes.value;
+    const next = selected.includes(jobType)
+      ? selected.filter((item) => item !== jobType)
+      : [...selected, jobType];
+    this.recommendationForm.controls.jobTypes.setValue(next);
+  }
+
+  protected isJobTypeSelected(jobType: string): boolean {
+    return this.recommendationForm.controls.jobTypes.value.includes(jobType);
+  }
+
   protected findRecommendedJobs(): void {
     this.error.set('');
     this.isFindingJobs.set(true);
     const location = encodeURIComponent(this.recommendationForm.controls.location.value || 'Remote');
+    const jobTypeParams = this.recommendationForm.controls.jobTypes.value
+      .map((jobType) => `job_type=${encodeURIComponent(jobType)}`)
+      .join('&');
+    const query = jobTypeParams ? `location=${location}&${jobTypeParams}` : `location=${location}`;
 
-    this.http.get<JobRecommendationSearch>(`${this.apiUrl}/job-recommendations?location=${location}`, this.headers())
+    this.http.get<JobRecommendationSearch>(`${this.apiUrl}/job-recommendations?${query}`, this.headers())
       .subscribe({
         next: (response) => {
           this.resumeKeywords.set(response.keywords);

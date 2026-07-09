@@ -133,8 +133,10 @@ def fetch_remotive_jobs(query: str) -> list[dict]:
     return payload.get("jobs", [])
 
 
-def build_job_recommendations(keywords: list[str], location: str) -> list[dict]:
+def build_job_recommendations(keywords: list[str], location: str, job_types: list[str] | None = None) -> list[dict]:
+    normalized_types = [job_type.strip().lower() for job_type in (job_types or []) if job_type.strip()]
     search_terms = keywords[:4] or ["Python", "JavaScript"]
+    search_terms = [f"{term} {job_type}" for term in search_terms for job_type in normalized_types] or search_terms
     raw_jobs: list[dict] = []
     seen_ids: set[str] = set()
 
@@ -167,6 +169,15 @@ def build_job_recommendations(keywords: list[str], location: str) -> list[dict]:
             value += 5
         if location_text and any(word in haystack for word in ("worldwide", "anywhere", "remote")):
             value += 1
+        for job_type in normalized_types:
+            if job_type in haystack:
+                value += 4
+            elif job_type == "full time" and any(term in haystack for term in ("full-time", "fulltime")):
+                value += 4
+            elif job_type == "part-time" and "part time" in haystack:
+                value += 4
+            elif job_type == "remote" and any(term in haystack for term in ("remote", "worldwide", "anywhere")):
+                value += 4
         return value
 
     ranked = sorted(raw_jobs, key=score, reverse=True)
@@ -436,6 +447,7 @@ def list_resumes(
 @app.get("/job-recommendations", response_model=JobRecommendationSearchOut)
 def job_recommendations(
     location: str = Query(default="", max_length=120),
+    job_type: list[str] = Query(default=[]),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -447,7 +459,7 @@ def job_recommendations(
     if not keywords and resume.extracted_text:
         keywords = detect_resume_keywords(resume.extracted_text)
 
-    jobs = build_job_recommendations(keywords, location)
+    jobs = build_job_recommendations(keywords, location, job_type)
     return JobRecommendationSearchOut(keywords=keywords, location=location, jobs=jobs)
 
 

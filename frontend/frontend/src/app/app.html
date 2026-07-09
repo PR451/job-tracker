@@ -168,10 +168,28 @@
         </div>
 
         <div class="recommendation-box">
-          <h2>Job suggestions</h2>
+          <h2>Suggested job</h2>
           <form [formGroup]="recommendationForm" (ngSubmit)="findRecommendedJobs()" class="stack-form compact">
-            <label for="preferred-location">Preferred location</label>
+            <label for="preferred-location">Job location</label>
             <input id="preferred-location" formControlName="location" placeholder="Remote, New York, Boston" />
+
+            <fieldset class="job-type-options">
+              <legend>Suggested job</legend>
+              <div class="option-grid">
+                @for (jobType of jobTypeOptions; track jobType) {
+                  <button
+                    type="button"
+                    class="option-chip"
+                    [class.active]="isJobTypeSelected(jobType)"
+                    (click)="toggleJobType(jobType)"
+                    [attr.aria-pressed]="isJobTypeSelected(jobType)"
+                  >
+                    {{ jobType }}
+                  </button>
+                }
+              </div>
+            </fieldset>
+
             <button class="primary" type="submit" [disabled]="isFindingJobs()">
               {{ isFindingJobs() ? 'Finding jobs...' : 'Find jobs' }}
             </button>
@@ -206,7 +224,7 @@
 
       <section class="panel recommendations-panel">
         <div class="panel-heading">
-          <h2>Recommended jobs</h2>
+          <h2>Suggested jobs</h2>
         </div>
 
         <div class="recommended-list">

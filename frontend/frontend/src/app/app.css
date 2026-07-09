@@ -391,6 +391,45 @@ textarea:focus {
   padding: 5px 8px;
 }
 
+
+.job-type-options {
+  border: 0;
+  margin: 2px 0 4px;
+  padding: 0;
+}
+
+.job-type-options legend {
+  color: #2c3a4d;
+  font-size: 0.86rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.option-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.option-chip {
+  background: #ffffff;
+  border: 1px solid #c8d3e1;
+  border-radius: 6px;
+  color: #435166;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.option-chip.active {
+  background: #ecfdf3;
+  border-color: #34d399;
+  color: #067647;
+}
+
 .recommended-list {
   display: grid;
   gap: 12px;

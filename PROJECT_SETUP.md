@@ -65,8 +65,8 @@ If port `4201` is busy, choose another port and keep the backend on
 
 ## Job Recommendations
 
-Upload a resume, then enter a preferred location in the Job suggestions panel.
-The backend detects keywords such as React, JavaScript, Python, FastAPI,
-Teaching, Healthcare, and SQL, calls the public Remotive jobs API, and returns
-recommended jobs. Use Save to Tracker to add a recommendation to your
-applications list.
+Upload a resume, enter a job location, then choose one or more Suggested job
+options: Remote, Part-time, Full time, or Contract. The backend detects keywords
+such as React, JavaScript, Python, FastAPI, Teaching, Healthcare, and SQL, calls
+the public Remotive jobs API, and returns matching jobs. Use Save to Tracker to
+add a recommendation to your applications list.
