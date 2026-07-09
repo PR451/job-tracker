@@ -168,27 +168,32 @@
         </div>
 
         <div class="recommendation-box">
-          <h2>Suggested job</h2>
           <form [formGroup]="recommendationForm" (ngSubmit)="findRecommendedJobs()" class="stack-form compact">
-            <label for="preferred-location">Job location</label>
-            <input id="preferred-location" formControlName="location" placeholder="Remote, New York, Boston" />
+            <section class="recommendation-section location-section" aria-labelledby="job-location-title">
+              <h2 id="job-location-title">Job location</h2>
+              <label for="preferred-location">Preferred location</label>
+              <input id="preferred-location" formControlName="location" placeholder="Remote, New York, Boston" />
+            </section>
 
-            <fieldset class="job-type-options">
-              <legend>Suggested job</legend>
-              <div class="option-grid">
-                @for (jobType of jobTypeOptions; track jobType) {
-                  <button
-                    type="button"
-                    class="option-chip"
-                    [class.active]="isJobTypeSelected(jobType)"
-                    (click)="toggleJobType(jobType)"
-                    [attr.aria-pressed]="isJobTypeSelected(jobType)"
-                  >
-                    {{ jobType }}
-                  </button>
-                }
-              </div>
-            </fieldset>
+            <section class="recommendation-section suggested-job-section" aria-labelledby="suggested-job-title">
+              <h2 id="suggested-job-title">Suggested job</h2>
+              <fieldset class="job-type-options">
+                <legend>Select one or more options</legend>
+                <div class="option-grid">
+                  @for (jobType of jobTypeOptions; track jobType) {
+                    <button
+                      type="button"
+                      class="option-chip"
+                      [class.active]="isJobTypeSelected(jobType)"
+                      (click)="toggleJobType(jobType)"
+                      [attr.aria-pressed]="isJobTypeSelected(jobType)"
+                    >
+                      {{ jobType }}
+                    </button>
+                  }
+                </div>
+              </fieldset>
+            </section>
 
             <button class="primary" type="submit" [disabled]="isFindingJobs()">
               {{ isFindingJobs() ? 'Finding jobs...' : 'Find jobs' }}

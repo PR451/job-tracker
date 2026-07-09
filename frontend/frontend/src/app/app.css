@@ -392,6 +392,31 @@ textarea:focus {
 }
 
 
+
+.recommendation-section {
+  background: #f8fafc;
+  border: 1px solid #e0e7f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.recommendation-section + .recommendation-section {
+  margin-top: 4px;
+}
+
+.recommendation-section h2 {
+  font-size: 0.98rem;
+  margin-bottom: 10px;
+}
+
+.location-section {
+  background: #ffffff;
+}
+
+.suggested-job-section {
+  background: #f8fafc;
+}
+
 .job-type-options {
   border: 0;
   margin: 2px 0 4px;
